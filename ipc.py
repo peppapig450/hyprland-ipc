@@ -168,3 +168,8 @@ class HyprlandIPC:
 
         except Exception as e:
             raise HyprlandIPCError(f"Failed to read events: {e}") from e
+
+    def listen_events(self, handler: Callable[[str, str], None]) -> None:
+        """Run a callback for each event (event_name, data). Blocks forever."""
+        for event, data in self.events():
+            handler(event, data)
