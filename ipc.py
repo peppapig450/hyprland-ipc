@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Callable, Iterator, Any
 from collections.abc import Sequence
 
+type AnyDict = dict[str, Any]
+"""Type alias for generic dictionaries."""
+
 
 class HyprlandIPCError(Exception):
     """Raised when HyprlandIPC fails to communicate."""
@@ -126,3 +129,15 @@ class HyprlandIPC:
                 self.dispatch_many(commands)
             else:
                 raise
+
+    def get_clients(self) -> list[AnyDict]:
+        """List all windows with their properties as a JSON object."""
+        return self.send_json("clients")
+
+    def get_active_window(self) -> AnyDict:
+        """Get the active window name and its properties as a JSON object."""
+        return self.send_json("activewindow")
+
+    def get_active_workspace(self) -> AnyDict:
+        """Gets the active workspace and its properties as a JSON object."""
+        return self.send_json("activeworkspace")
