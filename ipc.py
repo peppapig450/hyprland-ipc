@@ -3,8 +3,12 @@ import os
 import socket
 import json
 from pathlib import Path
-from typing import Callable, Iterator, Any
+from typing import Callable, Iterator, Any, TYPE_CHECKING
 from collections.abc import Sequence
+import selectors
+
+if TYPE_CHECKING:
+    from typing import cast
 
 type AnyDict = dict[str, Any]
 """Type alias for generic dictionaries."""
@@ -150,21 +154,32 @@ class HyprlandIPC:
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
                 sock.connect(str(self.event_socket_path))
+                sock.setblocking(False)
+
+                sel = selectors.DefaultSelector()
+                sel.register(sock, selectors.EVENT_READ)
+                
                 buf = bytearray()
+
                 while True:
-                    chunk = sock.recv(4096)
-                    if not chunk:
-                        break
-                    buf.extend(chunk)
-                    while b"\n" in buf:
-                        line, _, rest = buf.partition(b"\n")
-                        buf[:] = rest
-                        if line:
-                            try:
-                                ev, _, data = line.partition(b">>")
-                                yield (ev.decode(), data.decode())
-                            except Exception:
-                                continue
+                    for key, _ in sel.select(timeout=0.01): # 10ms timeout
+                        conn = cast(socket.socket, key.fileobj)
+                        try:
+                            chunk = conn.recv(4096)
+                            if not chunk:
+                                return
+                            buf.extend(chunk)
+                            while b"\n" in buf:
+                                line, _, rest = buf.partition(b"\n")
+                                buf[:] = rest
+                                if line:
+                                    try:
+                                        ev, _, data = line.partition(b">>")
+                                        yield (ev.decode(), data.decode())
+                                    except Exception:
+                                        continue
+                        except BlockingIOError:
+                            continue
 
         except Exception as e:
             raise HyprlandIPCError(f"Failed to read events: {e}") from e
