@@ -4,6 +4,7 @@ import socket
 import json
 from pathlib import Path
 from typing import Callable, Iterator, Any
+from collections.abc import Sequence
 
 
 class HyprlandIPCError(Exception):
@@ -92,3 +93,36 @@ class HyprlandIPC:
             raise HyprlandIPCError(
                 f"Failed to send or parse JSON for command '{command}': {e} "
             )
+
+    def dispatch(self, command: str) -> None:
+        """Send a single dispatch command."""
+        try:
+            self.send(f"dispatch {command}")
+        except HyprlandIPCError as e:
+            raise HyprlandIPCError(f"Failed to dispatch '{command}': {e}") from e
+
+    def dispatch_many(self, commands: Sequence[str]) -> None:
+        """Send multiple dispatch commands (as individual requests)."""
+        for cmd in commands:
+            try:
+                self.dispatch(cmd)
+            except HyprlandIPCError as e:
+                raise HyprlandIPCError(
+                    f"Failed to dispatch command '{cmd}': {e}"
+                ) from e
+
+    def batch(self, commands: Sequence[str]) -> None:
+        """
+        Send multiple dispatch commands as a single string, separated by ';'.
+        Not all Hyprland versions support batch over IPC; fallback to dispatch_many.
+        """
+        try:
+            cmd_str = "; ".join(commands)
+            self.send(f"dispatch {cmd_str}")
+        except HyprlandIPCError as e:
+            # Detect error message and fallback
+            # NOTE: this is untested as an effective fallback.
+            if "unknown" in str(e).lower():
+                self.dispatch_many(commands)
+            else:
+                raise
