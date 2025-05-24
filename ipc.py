@@ -141,3 +141,30 @@ class HyprlandIPC:
     def get_active_workspace(self) -> AnyDict:
         """Gets the active workspace and its properties as a JSON object."""
         return self.send_json("activeworkspace")
+
+    def events(self) -> Iterator[tuple[str, str]]:
+        """
+        Listen  to .socket2.sock for Hyprland events.
+        Yields (event_name, data) tuples.
+        """
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.connect(str(self.event_socket_path))
+                buf = bytearray()
+                while True:
+                    chunk = sock.recv(4096)
+                    if not chunk:
+                        break
+                    buf.extend(chunk)
+                    while b"\n" in buf:
+                        line, _, rest = buf.partition(b"\n")
+                        buf[:] = rest
+                        if line:
+                            try:
+                                ev, _, data = line.partition(b">>")
+                                yield (ev.decode(), data.decode())
+                            except Exception:
+                                continue
+
+        except Exception as e:
+            raise HyprlandIPCError(f"Failed to read events: {e}") from e
