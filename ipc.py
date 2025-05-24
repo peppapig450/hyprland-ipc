@@ -1,11 +1,13 @@
 from __future__ import annotations
-import os
-import socket
+
 import json
-from pathlib import Path
-from typing import Callable, Iterator, Any, TYPE_CHECKING
-from collections.abc import Sequence
+import os
 import selectors
+import socket
+from collections.abc import Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Iterator
 
 if TYPE_CHECKING:
     from typing import cast
@@ -13,6 +15,11 @@ if TYPE_CHECKING:
 type AnyDict = dict[str, Any]
 """Type alias for generic dictionaries."""
 
+@dataclass
+class Event:
+    """A Hyprland event, with a name and associated data string."""
+    name: str
+    data: str
 
 class HyprlandIPCError(Exception):
     """Raised when HyprlandIPC fails to communicate."""
@@ -146,9 +153,9 @@ class HyprlandIPC:
         """Gets the active workspace and its properties as a JSON object."""
         return self.send_json("activeworkspace")
 
-    def events(self) -> Iterator[tuple[str, str]]:
+    def events(self) -> Iterator[Event]:
         """
-        Listen  to .socket2.sock for Hyprland events.
+        Listen to .socket2.sock for Hyprland events.
         Yields (event_name, data) tuples.
         """
         try:
@@ -175,7 +182,7 @@ class HyprlandIPC:
                                 if line:
                                     try:
                                         ev, _, data = line.partition(b">>")
-                                        yield (ev.decode(), data.decode())
+                                        yield Event(ev.decode(), data.decode())
                                     except Exception:
                                         continue
                         except BlockingIOError:
@@ -184,7 +191,7 @@ class HyprlandIPC:
         except Exception as e:
             raise HyprlandIPCError(f"Failed to read events: {e}") from e
 
-    def listen_events(self, handler: Callable[[str, str], None]) -> None:
+    def listen_events(self, handler: Callable[[Event], None]) -> None:
         """Run a callback for each event (event_name, data). Blocks forever."""
-        for event, data in self.events():
-            handler(event, data)
+        for event in self.events():
+            handler(event)
