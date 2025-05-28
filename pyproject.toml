@@ -1,13 +1,9 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "hyprland-ipc"
-dynamic = ["version"]
-description = ''
+version = "0.1.0"
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 license = "MIT"
 keywords = []
 authors = [
@@ -16,10 +12,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
@@ -30,16 +22,6 @@ dependencies = []
 Documentation = "https://github.com/peppapig450/hyprland-ipc#readme"
 Issues = "https://github.com/peppapig450/hyprland-ipc/issues"
 Source = "https://github.com/peppapig450/hyprland-ipc"
-
-[tool.hatch.version]
-path = "src/hyprland_ipc/__about__.py"
-
-[tool.hatch.envs.types]
-extra-dependencies = [
-  "mypy>=1.0.0",
-]
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/hyprland_ipc tests}"
 
 [tool.coverage.run]
 source_pkgs = ["hyprland_ipc", "tests"]
@@ -58,4 +40,15 @@ exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pytest>=8.3.5",
+    "ruff>=0.11.11",
 ]
