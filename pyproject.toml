@@ -52,3 +52,81 @@ dev = [
     "pytest>=8.3.5",
     "ruff>=0.11.11",
 ]
+
+[tool.ruff]
+src = ["src"]
+target-version = "py312"
+line-length = 100
+exclude = ["__pycache__", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "UP",   # pyupgrade
+    "S",    # flake8-bandit (security)
+    "B",    # flake8-bugbear (best practices)
+    "A",    # flake8-builtins
+    "C4",   # flake8-comprehensions
+    "T20",  # flake8-print
+    "PL",   # pylint
+    "RUF",  # Ruff-specific rules
+]
+ignore = [
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+    # Add or remove ignores as you prefer
+]
+
+# Pydocstyle options
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["hyprland_ipc"]
+force-single-line = false
+combine-as-imports = true
+lines-after-imports = 2
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = []
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore print statements and doctest errors in tests
+"tests/*" = ["T201", "D103"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+files = "src/hyprland_ipc"
+strict = true
+# strict includes: check_untyped_defs, disallow_untyped_defs, warn_unused_ignores, disallow_any_generics, warn_return_any, etc.
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+ignore_missing_imports = true
+namespace_packages = true
+exclude = [
+    "tests/",
+    "build/",
+    "dist/",
+    ".*venv/",
+    "__pycache__/",
+]
