@@ -1,5 +1,4 @@
-"""
-HyprlandIPC: A reusable, type-safe Python IPC client for Hyprland's UNIX sockets.
+"""HyprlandIPC: A reusable, type-safe Python IPC client for Hyprland's UNIX sockets.
 
 - Send hyprctl-like commands and receive replies (raw or JSON).
 - Send dispatches, single or batch.
@@ -15,10 +14,11 @@ import json
 import os
 import selectors
 import socket
-from collections.abc import Sequence, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
+
 
 if TYPE_CHECKING:
     from typing import cast
@@ -37,8 +37,7 @@ class HyprlandIPCError(Exception):
 
 
 class HyprlandIPC:
-    """
-    A reusable Hyprland IPC client for commands and events.
+    """A reusable Hyprland IPC client for commands and events.
 
     Usage:
         ipc = HyprlandIPC.from_env()
@@ -48,8 +47,7 @@ class HyprlandIPC:
     """
 
     def __init__(self, socket_path: Path, event_socket_path: Path):
-        """
-        Initialize the IPC client with explicit socket paths.
+        """Initialize the IPC client with explicit socket paths.
 
         Args:
             socket_path: Path to the command socket (.socket.sock).
@@ -60,8 +58,7 @@ class HyprlandIPC:
 
     @classmethod
     def from_env(cls) -> HyprlandIPC:
-        """
-        Create a HyprlandIPC client by discovering socket paths from the environment.
+        """Create a HyprlandIPC client by discovering socket paths from the environment.
 
         Environment:
             - XDG_RUNTIME_DIR
@@ -97,8 +94,7 @@ class HyprlandIPC:
         return cls(sock1, sock2)
 
     def send(self, command: str) -> str:
-        """
-        Send a raw command and return response as a string.
+        """Send a raw command and return response as a string.
 
         Args:
             command: The command to send (e.g. 'j/clients' or 'dispatch ...').
@@ -136,8 +132,7 @@ class HyprlandIPC:
             ) from e
 
     def send_json(self, command: str) -> Any:
-        """
-        Send a command with 'j/' prefix and parse the JSON response.
+        """Send a command with 'j/' prefix and parse the JSON response.
 
         Args:
             command: The command after 'j/' (e.g. 'clients', 'activewindow').
@@ -163,8 +158,7 @@ class HyprlandIPC:
             )
 
     def dispatch(self, command: str) -> None:
-        """
-        Send a single dispatch command.
+        """Send a single dispatch command.
 
         Args:
             command: e.g., 'focuswindow address:0xabc', 'fullscreen 1'
@@ -178,8 +172,7 @@ class HyprlandIPC:
             raise HyprlandIPCError(f"Failed to dispatch '{command}': {e}") from e
 
     def dispatch_many(self, commands: Sequence[str]) -> None:
-        """
-        Send multiple dispatch commands (as individual requests).
+        """Send multiple dispatch commands (as individual requests).
 
         Args:
             commands: Iterable of dispatch commands.
@@ -196,8 +189,7 @@ class HyprlandIPC:
                 ) from e
 
     def batch(self, commands: Sequence[str]) -> None:
-        """
-        Send multiple dispatch commands as a single string, separated by ';'.
+        """Send multiple dispatch commands as a single string, separated by ';'.
 
         Not all Hyprland versions support batch over IPC; falls back to dispatch_many if batch fails.
 
@@ -219,8 +211,7 @@ class HyprlandIPC:
                 raise
 
     def get_clients(self) -> list[AnyDict]:
-        """
-        List all windows with their properties as a JSON object.
+        """List all windows with their properties as a JSON object.
 
         Returns:
             list[AnyDict]: List of client window info dicts.
@@ -228,8 +219,7 @@ class HyprlandIPC:
         return self.send_json("clients")
 
     def get_active_window(self) -> AnyDict:
-        """
-        Get the active window name and its properties as a JSON object.
+        """Get the active window name and its properties as a JSON object.
 
         Returns:
             AnyDict: Active window info.
@@ -237,17 +227,15 @@ class HyprlandIPC:
         return self.send_json("activewindow")
 
     def get_active_workspace(self) -> AnyDict:
-        """
-        Get the active workspace and its properties as a JSON object.
+        """Get the active workspace and its properties as a JSON object.
 
         Returns:
             AnyDict: Active workspace info.
-        """        
+        """
         return self.send_json("activeworkspace")
 
     def events(self) -> Iterator[Event]:
-        """
-        Listen to .socket2.sock for Hyprland events.
+        """Listen to .socket2.sock for Hyprland events.
 
         Yields:
             Event: Each event as an Event(name, data) object.
@@ -264,7 +252,7 @@ class HyprlandIPC:
 
                 sel = selectors.DefaultSelector()
                 sel.register(sock, selectors.EVENT_READ)
-                
+
                 buf = bytearray()
 
                 while True:
@@ -291,8 +279,7 @@ class HyprlandIPC:
             raise HyprlandIPCError(f"Failed to read events: {e}") from e
 
     def listen_events(self, handler: Callable[[Event], None]) -> None:
-        """
-        Run a callback for each event as it is received (blocks forever).
+        """Run a callback for each event as it is received (blocks forever).
 
         Args:
             handler: Callable that accepts Event.
