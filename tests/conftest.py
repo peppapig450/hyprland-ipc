@@ -88,3 +88,32 @@ class _BadSocket(_BaseFakeSocket):
 
     def recv(self, bufsize: int) -> bytes:
         return b""
+
+# --------------------------------------------------------------------------
+# Fixtures - each yields *None* because they only perform monkey-patching.
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def fake_socket_success(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+    """Replace :pyfunc:`socket.socket` with :class:`_SuccessSocket`."""
+    monkeypatch.setattr(socket, "socket", _SuccessSocket)
+    yield
+    monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
+
+
+@pytest.fixture()
+def fake_socket_unknown(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+    """Replace :pyfunc:`socket.socket` with :class:`_UnknownSocket`."""
+    monkeypatch.setattr(socket, "socket", _UnknownSocket)
+    yield
+    monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
+
+
+@pytest.fixture()
+def bad_socket(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+    """Replace :pyfunc:`socket.socket` with :class:`_BadSocket`."""
+    monkeypatch.setattr(socket, "socket", _BadSocket)
+    yield
+    monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
+
