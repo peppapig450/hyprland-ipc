@@ -117,3 +117,60 @@ def bad_socket(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
     yield
     monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
 
+
+# --------------------------------------------------------------------------
+# Live socket servers (UNIX domain) for integration-style fixtures.
+# --------------------------------------------------------------------------
+
+_SOCKET_BACKLOG = 1
+
+
+@pytest.fixture()
+def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+    """Start a dummy command socket at *tmp_path / 'a'*.
+
+    Tests can rely on the existence of the path without having to set it up
+    themselves. The fixture changes the working directory so that relative
+    paths inside the code under test resolve correctly.
+    """
+    monkeypatch.chdir(tmp_path)
+
+    sock_path = tmp_path / "a"
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(str(sock_path))
+    server.listen(_SOCKET_BACKLOG)
+
+    yield
+
+    server.close()
+    sock_path.unlink(missing_ok=True)
+
+
+@pytest.fixture()
+def evt_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+    """Start a dummy event socket at *tmp_path / 'b'* that emits two events."""
+    monkeypatch.chdir(tmp_path)
+
+    sock_path = tmp_path / "b"
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(str(sock_path))
+    server.listen(_SOCKET_BACKLOG)
+
+    def _serve() -> None:
+        conn, _ = server.accept()
+        try:
+            # Hyprland separates events by *\n* and uses *>>* as the delimiter
+            # between event name and payload. See: https://wiki.hyprland.org/IPC/
+            conn.sendall(b"evt1>>data1\n")
+            conn.sendall(b"evt2>>data2\n")
+        finally:
+            conn.close()
+            server.close()
+
+    thread = threading.Thread(target=_serve, daemon=True)
+    thread.start()
+
+    yield
+
+    thread.join()
+    sock_path.unlink(missing_ok=True)
