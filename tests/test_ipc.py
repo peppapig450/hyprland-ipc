@@ -37,28 +37,27 @@ def test_event_equality_and_attrs() -> None:
 
 
 @pytest.mark.parametrize(
-    "xdg, sig, missing",
+    ("env", "missing_names"),
     [
-        (False, False, "XDG_RUNTIME_DIR and HYPRLAND_INSTANCE_SIGNATURE"),
-        (True, False, "HYPRLAND_INSTANCE_SIGNATURE"),
-        (False, True, "XDG_RUNTIME_DIR"),
+        ({}, ("XDG_RUNTIME_DIR", "HYPRLAND_INSTANCE_SIGNATURE")),
+        ({"XDG_RUNTIME_DIR": "/tmp"}, ("HYPRLAND_INSTANCE_SIGNATURE",)),  # noqa: S108
+        ({"HYPRLAND_INSTANCE_SIGNATURE": "sig"}, ("XDG_RUNTIME_DIR",)),
     ],
 )
-def test_from_env_missing_vars(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, xdg: bool, sig: bool, missing: str
+def test_from_env_missing(
+    monkeypatch: pytest.MonkeyPatch, env: dict[str, str], missing_names: tuple[str, ...]
 ) -> None:
-    if xdg:
-        monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
-    else:
-        monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
-    if sig:
-        monkeypatch.setenv("HYPRLAND_INSTANCE_SIGNATURE", "sig")
-    else:
-        monkeypatch.delenv("HYPRLAND_INSTANCE_SIGNATURE", raising=False)
+    monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+    monkeypatch.delenv("HYPRLAND_INSTANCE_SIGNATURE", raising=False)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
 
     with pytest.raises(HyprlandIPCError) as exc:
         HyprlandIPC.from_env()
-    assert missing in str(exc.value)
+
+    msg = str(exc.value)
+    for name in missing_names:
+        assert name in msg
 
 
 def test_from_env_socket_paths(monkeypatch: pytest.MonkeyPatch) -> None:
