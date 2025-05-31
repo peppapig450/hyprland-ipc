@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from src.hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError
+
+from hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError
 
 
 # ---------------------------------------------------------------------------#
