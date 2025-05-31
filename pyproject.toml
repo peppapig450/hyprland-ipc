@@ -138,7 +138,7 @@ minversion = "6.0"
 # Default cli flags: show extra summary info, quiet dots output, short tracebacks
 addopts="-ra -q --tb=short --strict-markers"
 
-testpaths = ["test"]
+testpaths = ["tests"]
 
 # Naming conventions
 python_files = ["test_*.py"]
