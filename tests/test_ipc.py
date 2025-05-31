@@ -183,27 +183,20 @@ def test_dispatch_many_calls_each(monkeypatch: pytest.MonkeyPatch, ipc: Hyprland
 # ---------------------------------------------------------------------------#
 
 
-def test_batch_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[str] = []
-    monkeypatch.setattr(HyprlandIPC, "send", lambda self, c: calls.append(c))
-    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
-    ipc_obj.batch(["x", "y"])
-    assert calls == ["dispatch x; y"]
+def test_batch_success(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
+    sent: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "send", lambda _self, c: sent.append(c))
+    ipc.batch(["x", "y"])
+    assert sent == ["dispatch x; y"]
 
 
-def test_batch_fallback(
-    monkeypatch: pytest.MonkeyPatch, monkeypatch_session: pytest.MonkeyPatch
-) -> None:
-    def bad_send(self, c: str) -> None:
-        raise HyprlandIPCError("unknown error")
-
-    called: list[str] = []
-    monkeypatch.setattr(HyprlandIPC, "send", bad_send)
-    monkeypatch_session.setattr(
-        HyprlandIPC, "dispatch_many", lambda self, cmds: called.extend(cmds)
+def test_batch_fallback(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
+    monkeypatch.setattr(
+        HyprlandIPC, "send", lambda *_: (_ for _ in ()).throw(HyprlandIPCError("unknown"))
     )
-    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
-    ipc_obj.batch(["m", "n"])
+    called: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "dispatch_many", lambda _self, cmds: called.extend(cmds))
+    ipc.batch(["m", "n"])
     assert called == ["m", "n"]
 
 
