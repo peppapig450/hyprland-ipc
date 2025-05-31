@@ -11,6 +11,12 @@ from src.hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError
 # ---------------------------------------------------------------------------#
 
 
+@pytest.fixture()
+def ipc(tmp_path: Path) -> HyprlandIPC:
+    """HyprlandIPC pointing at dummy paths."""
+    return HyprlandIPC(tmp_path / "cmd.sock", tmp_path / "evt.sock")
+
+
 # ---------------------------------------------------------------------------#
 #                              Event dataclass                               #
 # ---------------------------------------------------------------------------#
