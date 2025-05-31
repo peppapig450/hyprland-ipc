@@ -118,11 +118,36 @@ def test_send(
 
 
 @pytest.mark.parametrize(
-    "commands, expect",
+    ("send_return", "expected", "raises"),
     [
-        (["x", "y"], ["x", "y"]),
+        ('{"key": "value"}', {"key": "value"}, None),
+        ("", {}, None),
+        ("notjson", None, HyprlandIPCError),
     ],
 )
+def test_send_json(
+    monkeypatch: pytest.MonkeyPatch,
+    ipc: HyprlandIPC,
+    send_return: str,
+    expected: dict[str, Any] | None,
+    raises: type[BaseException] | None,
+) -> None:
+    monkeypatch.setattr(HyprlandIPC, "send", lambda *_: send_return)
+
+    if raises:
+        with pytest.raises(raises):
+            ipc.send_json("cmd")
+    else:
+        assert ipc.send_json("cmd") == expected
+
+
+def test_send_json_unexpected(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
+    monkeypatch.setattr(HyprlandIPC, "send", lambda *_: (_ for _ in ()).throw(RuntimeError("boom")))
+    with pytest.raises(HyprlandIPCError) as exc:
+        ipc.send_json("clients")
+    assert "Failed to send or parse JSON" in str(exc.value)
+
+
 # ---------------------------------------------------------------------------#
 #                                dispatch()                                  #
 # ---------------------------------------------------------------------------#
