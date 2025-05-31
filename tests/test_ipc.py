@@ -124,3 +124,45 @@ def test_send_json_decode_error(monkeypatch: pytest.MonkeyPatch) -> None:
     ipc_obj = HyprlandIPC(Path("a"), Path("b"))
     with pytest.raises(HyprlandIPCError):
         ipc_obj.send_json("cmd")
+
+
+# Tests for dispatch methods
+
+
+def test_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "send", lambda self, c: calls.append(c))
+    ipc_obj = HyprlandIPC(Path("a"), Path("b"))
+    ipc_obj.dispatch("do")
+    assert calls == ["dispatch do"]
+
+
+def test_dispatch_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_send(self, c: str) -> None:
+        raise HyprlandIPCError("oopsies daisies")
+
+    monkeypatch.setattr(HyprlandIPC, "send", fake_send)
+    ipc_obj = HyprlandIPC(Path("a"), Path("b"))
+    with pytest.raises(HyprlandIPCError) as exc:
+        ipc_obj.dispatch("do")
+    assert "Failed to dispatch 'do'" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "commands, expect",
+    [
+        (["x", "y"], ["x", "y"]),
+    ],
+)
+def test_dispatch_many(commands: list[str], expect: list[str]) -> None:
+    called: list[str] = []
+
+    def fake_dispatch(self, c: str) -> None:
+        called.append(c)
+
+    monkeypatch_util = pytest.MonkeyPatch()
+    monkeypatch_util.setattr(HyprlandIPC, "dispatch", fake_dispatch)
+    ipc_obj = HyprlandIPC(Path("a"), Path("b"))
+    ipc_obj.dispatch_many(commands)
+    assert called == expect
+    monkeypatch_util.undo()
