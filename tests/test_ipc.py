@@ -206,3 +206,11 @@ def test_get_wrappers(monkeypatch: pytest.MonkeyPatch) -> None:
     assert [client["id"] for client in ipc_obj.get_clients()] == [1, 2]
     assert ipc_obj.get_active_window() == {"k": "v"}
     assert ipc_obj.get_active_workspace() == {"k": "v"}
+
+
+# Test for listen_events
+
+
+def test_listen_events(cmd_server: None, evt_server: None) -> None:
+    events: list[Event] = list(HyprlandIPC(Path("a"), Path("b")).events())
+    assert events == [Event("evt1", "data1"), Event("evt2", "data2")]
