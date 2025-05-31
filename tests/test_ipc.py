@@ -166,3 +166,30 @@ def test_dispatch_many(commands: list[str], expect: list[str]) -> None:
     ipc_obj.dispatch_many(commands)
     assert called == expect
     monkeypatch_util.undo()
+
+
+# Tests for batch
+
+
+def test_batch_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "send", lambda self, c: calls.append(c))
+    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
+    ipc_obj.batch(["x", "y"])
+    assert calls == ["dispatch x; y"]
+
+
+def test_batch_fallback(
+    monkeypatch: pytest.MonkeyPatch, monkeypatch_session: pytest.MonkeyPatch
+) -> None:
+    def bad_send(self, c: str) -> None:
+        raise HyprlandIPCError("unknown error")
+
+    called: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "send", bad_send)
+    monkeypatch_session.setattr(
+        HyprlandIPC, "dispatch_many", lambda self, cmds: called.extend(cmds)
+    )
+    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
+    ipc_obj.batch(["m", "n"])
+    assert called == ["m", "n"]
