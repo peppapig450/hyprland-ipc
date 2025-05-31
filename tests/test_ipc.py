@@ -193,3 +193,16 @@ def test_batch_fallback(
     ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
     ipc_obj.batch(["m", "n"])
     assert called == ["m", "n"]
+
+
+# Tests for wrapper methods
+
+
+def test_get_wrappers(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        HyprlandIPC, "send_json", lambda self, c: [1, 2] if c == "clients" else {"k": "v"}
+    )
+    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
+    assert [client["id"] for client in ipc_obj.get_clients()] == [1, 2]
+    assert ipc_obj.get_active_window() == {"k": "v"}
+    assert ipc_obj.get_active_workspace() == {"k": "v"}
