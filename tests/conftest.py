@@ -10,56 +10,50 @@ from __future__ import annotations
 
 import socket
 import threading
-from collections.abc import Generator
-from os import PathLike
+from collections.abc import Generator, Mapping
 from pathlib import Path
 from typing import Literal, Self
 
 import pytest
 
 
-type PathType = str | bytes | Path | PathLike[str] | PathLike[bytes]
-"""Type alias representing any possible Path."""
-
-type FixtureGen = Generator[None, None, None]
-"""Type alias for annotating fixture's empty generators."""
+# ---------------------------------------------------------------------------#
+#                               Fake sockets                                 #
+# ---------------------------------------------------------------------------#
 
 
 class _BaseFakeSocket:
-    """Minimal socket implementation shared by all fake sockets."""
-
-    family: int
-    type_: int
+    """Tiny drop-in replacement for :class:`socket.socket` (subset only)."""
 
     def __init__(self, family: int, type_: int) -> None:
         self.family = family
         self.type_ = type_
         self.sent: list[bytes] = []
         self._recv_data: list[bytes] = []
+        self.type_ = type_
 
-    # ---------------------------------------------------------------------
-    # Socket API subset
-    # ---------------------------------------------------------------------
-    def connect(self, path: PathType) -> None:
+    # -- minimal API ---------------------------------------------------------
+    def connect(self, path: str | bytes | Path) -> None:
         """Pretend to connect to a UNIX socket."""
         ...
 
     def sendall(self, payload: bytes, /) -> None:
         """Record *payload* so that the test suite can later assert on it."""
+        self.sent.append(payload)
 
-    def recv(self, bufsize: int, /) -> bytes:
+    def recv(self, _bufsize: int, /) -> bytes:
         """Return a chunk of pre-queued data from *self._recv_data*."""
         return self._recv_data.pop(0)
 
-    # ------------------------------------------------------------------
-    # Context-manager protocol so ``with socket.socket() as s: ...`` keeps
-    # working.
-    # ------------------------------------------------------------------
+    # -- context-manager support --------------------------------------------
     def __enter__(self) -> Self:
         return self
 
     def __exit__(
-        self, exec_type: type[BaseException] | None, exc: BaseException | None, tb: object | None
+        self,
+        _exec_type: type[BaseException] | None,
+        _exc: BaseException | None,
+        _tb: object | None,
     ) -> Literal[False]:
         return False
 
@@ -83,11 +77,15 @@ class _UnknownSocket(_BaseFakeSocket):
 class _BadSocket(_BaseFakeSocket):
     """Fake socket that fails immediately upon *connect*."""
 
-    def connect(self, path: PathType) -> None:
-        return super().connect(path)
+    def connect(self, path: str | bytes | Path) -> None:
+        raise ConnectionRefusedError("BOOM!")  # Force the error path
 
-    def recv(self, bufsize: int) -> bytes:
-        return b""
+
+_FAKE_SOCKET_MAP: Mapping[str, type[_BaseFakeSocket]] = {
+    "success": _SuccessSocket,
+    "unknown": _UnknownSocket,
+    "bad": _BadSocket,
+}
 
 # --------------------------------------------------------------------------
 # Fixtures - each yields *None* because they only perform monkey-patching.
@@ -126,7 +124,7 @@ _SOCKET_BACKLOG = 1
 
 
 @pytest.fixture()
-def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     """Start a dummy command socket at *tmp_path / 'a'*.
 
     Tests can rely on the existence of the path without having to set it up
@@ -147,7 +145,7 @@ def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> FixtureGen
 
 
 @pytest.fixture()
-def evt_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
+def evt_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     """Start a dummy event socket at *tmp_path / 'b'* that emits two events."""
     monkeypatch.chdir(tmp_path)
 
