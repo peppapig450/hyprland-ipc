@@ -1,5 +1,6 @@
 import socket
 from pathlib import Path
+from typing import Any
 
 import pytest
 from src.hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError
@@ -99,3 +100,27 @@ def test_send_socket_failure(bad_socket: None) -> None:
     with pytest.raises(HyprlandIPCError) as exc:
         ipc_obj.send("cmd")
     assert "Failed to send IPC command" in str(exc.value)
+
+
+# Tests for send_json
+
+
+def test_send_json_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(HyprlandIPC, "send", lambda self, c: '{"key": "value"}')
+    ipc_obj = HyprlandIPC(Path("a"), Path("b"))
+    result: dict[str, Any] = ipc_obj.send_json("cmd")
+    assert result == {"key": "value"}
+
+
+def test_send_json_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(HyprlandIPC, "send", lambda self, c: "")
+    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
+    result: dict[str, Any] = ipc_obj.send_json("cmd")
+    assert result == {}
+
+
+def test_send_json_decode_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(HyprlandIPC, "send", lambda self, c: "notjson")
+    ipc_obj = HyprlandIPC(Path("a"), Path("b"))
+    with pytest.raises(HyprlandIPCError):
+        ipc_obj.send_json("cmd")
