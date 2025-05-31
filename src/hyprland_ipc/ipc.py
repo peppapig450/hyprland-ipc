@@ -17,11 +17,8 @@ import socket
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, cast
 
-
-if TYPE_CHECKING:
-    from typing import cast
 
 type AnyDict = dict[str, Any]
 """Type alias for generic dictionaries representing Hyprland's JSON responses."""
