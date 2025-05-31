@@ -87,33 +87,49 @@ _FAKE_SOCKET_MAP: Mapping[str, type[_BaseFakeSocket]] = {
     "bad": _BadSocket,
 }
 
-# --------------------------------------------------------------------------
-# Fixtures - each yields *None* because they only perform monkey-patching.
-# --------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+#                                Fixtures                                    #
+# ---------------------------------------------------------------------------#
+
+
+def _patch_socket[T: _BaseFakeSocket](monkeypatch: pytest.MonkeyPatch, fake_cls: type[T]) -> None:
+    """Globally replace ``socket.socket`` with *fake_cls* inside code-under-test."""
+    monkeypatch.setattr(socket, "socket", fake_cls, raising=True)
+
+
+@pytest.fixture(params=("success", "unknown", "bad"))
+def fake_socket(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Generator[str, None, None]:
+    """Parametrised socket patcher.
+
+    Yields the **name** of the fake that is active for this test.
+    """
+    _patch_socket(monkeypatch, _FAKE_SOCKET_MAP[request.param])
+    yield request.param
+    monkeypatch.undo()
+
+
+# Sometimes explicit fixtures read better in tests --------------------------
+@pytest.fixture()
+def fake_socket_success(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    _patch_socket(monkeypatch, _SuccessSocket)
+    yield
+    monkeypatch.undo()
 
 
 @pytest.fixture()
-def fake_socket_success(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
-    """Replace :pyfunc:`socket.socket` with :class:`_SuccessSocket`."""
-    monkeypatch.setattr(socket, "socket", _SuccessSocket)
+def fake_socket_unknown(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    _patch_socket(monkeypatch, _UnknownSocket)
     yield
-    monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
+    monkeypatch.undo()
 
 
 @pytest.fixture()
-def fake_socket_unknown(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
-    """Replace :pyfunc:`socket.socket` with :class:`_UnknownSocket`."""
-    monkeypatch.setattr(socket, "socket", _UnknownSocket)
+def bad_socket(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    _patch_socket(monkeypatch, _BadSocket)
     yield
-    monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
-
-
-@pytest.fixture()
-def bad_socket(monkeypatch: pytest.MonkeyPatch) -> FixtureGen:
-    """Replace :pyfunc:`socket.socket` with :class:`_BadSocket`."""
-    monkeypatch.setattr(socket, "socket", _BadSocket)
-    yield
-    monkeypatch.setattr(socket, "socket", socket.socket, raising=False)
+    monkeypatch.undo()
 
 
 # --------------------------------------------------------------------------
