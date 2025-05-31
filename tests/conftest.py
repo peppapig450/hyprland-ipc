@@ -9,8 +9,8 @@ relying on a live compositor instance.
 from __future__ import annotations
 
 import socket
-import threading
 import tempfile
+import threading
 import uuid
 from collections.abc import Generator, Mapping
 from pathlib import Path
