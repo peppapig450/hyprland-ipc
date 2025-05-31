@@ -1,5 +1,7 @@
 import socket
 from pathlib import Path
+import tempfile
+import uuid
 from typing import Any
 
 import pytest
@@ -59,11 +61,28 @@ def test_from_env_missing_vars(
     assert missing in str(exc.value)
 
 
-def test_from_env_sockets_not_found(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+def test_from_env_socket_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    runtime_dir = Path(tempfile.gettempdir()) / f"hypripc_{uuid.uuid4().hex[:8]}"
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime_dir))
     monkeypatch.setenv("HYPRLAND_INSTANCE_SIGNATURE", "sig")
-    base = tmp_path / "hypr" / "sig"
+
+    base = runtime_dir / "hypr" / "sig"
     base.mkdir(parents=True, exist_ok=True)
+    cmd = base / ".socket.sock"
+    evt = base / ".socket2.sock"
+
+    # make them real sockets so that Path.is_socket() is true
+    for p in (cmd, evt):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.bind(str(p))
+        s.listen(1)
+        s.close()
+
+    ipc_obj = HyprlandIPC.from_env()
+    assert ipc_obj.socket_path.samefile(cmd.resolve())
+    assert ipc_obj.event_socket_path.samefile(evt.resolve())
+
+
 # ---------------------------------------------------------------------------#
 #                                   send()                                   #
 # ---------------------------------------------------------------------------#
@@ -137,6 +156,8 @@ def test_get_wrappers(monkeypatch: pytest.MonkeyPatch) -> None:
 # ---------------------------------------------------------------------------#
 
 
-def test_listen_events(cmd_server: None, evt_server: None) -> None:
-    events: list[Event] = list(HyprlandIPC(Path("a"), Path("b")).events())
+def test_events_iteration(cmd_server, evt_server) -> None:
+    """Real socket integration test."""
+    ipc_obj = HyprlandIPC(cmd_server, evt_server)
+    events = list(ipc_obj.events())
     assert events == [Event("evt1", "data1"), Event("evt2", "data2")]

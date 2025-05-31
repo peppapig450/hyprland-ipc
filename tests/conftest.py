@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import socket
 import threading
+import tempfile
+import uuid
 from collections.abc import Generator, Mapping
 from pathlib import Path
 from typing import Literal, Self
@@ -139,8 +141,13 @@ def bad_socket(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
 _SOCKET_BACKLOG = 1
 
 
+def _make_short_socket(name: str) -> Path:
+    """Return a guaranteed-short pathname inside the system temp dir."""
+    return Path(tempfile.gettempdir()) / f"hypripc_{uuid.uuid4().hex[:8]}_{name}.sock"
+
+
 @pytest.fixture()
-def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[Path, None, None]:
     """Start a dummy command socket at *tmp_path / 'a'*.
 
     Tests can rely on the existence of the path without having to set it up
@@ -149,23 +156,23 @@ def cmd_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[
     """
     monkeypatch.chdir(tmp_path)
 
-    sock_path = tmp_path / "a"
+    sock_path = _make_short_socket("cmd")
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(str(sock_path))
     server.listen(_SOCKET_BACKLOG)
 
-    yield
+    yield sock_path
 
     server.close()
     sock_path.unlink(missing_ok=True)
 
 
 @pytest.fixture()
-def evt_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+def evt_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[Path, None, None]:
     """Start a dummy event socket at *tmp_path / 'b'* that emits two events."""
     monkeypatch.chdir(tmp_path)
 
-    sock_path = tmp_path / "b"
+    sock_path = _make_short_socket("evt")
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(str(sock_path))
     server.listen(_SOCKET_BACKLOG)
@@ -184,7 +191,7 @@ def evt_server(tmp_path: Path, *, monkeypatch: pytest.MonkeyPatch) -> Generator[
     thread = threading.Thread(target=_serve, daemon=True)
     thread.start()
 
-    yield
+    yield sock_path
 
     thread.join()
     sock_path.unlink(missing_ok=True)
