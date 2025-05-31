@@ -1,6 +1,4 @@
-import os
 import socket
-import threading
 from pathlib import Path
 
 import pytest
@@ -79,3 +77,25 @@ def test_from_env_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     finally:
         server1.close()
         server2.close()
+
+
+# Tests for send
+
+
+def test_send_success(fake_socket_success: None) -> None:
+    ipc_obj = HyprlandIPC(Path("/tmp/cmd"), Path("/tmp/evt"))
+    result = ipc_obj.send("cmd")
+    assert result == "resp"
+
+
+def test_send_unknown_error(fake_socket_unknown: None) -> None:
+    ipc_obj = HyprlandIPC(Path("/tmp/cmd"), Path("/tmp/evt"))
+    with pytest.raises(HyprlandIPCError):
+        ipc_obj.send("cmd")
+
+
+def test_send_socket_failure(bad_socket: None) -> None:
+    ipc_obj = HyprlandIPC(Path("/tmp/cmd"), Path("/tmp/evt"))
+    with pytest.raises(HyprlandIPCError) as exc:
+        ipc_obj.send("cmd")
+    assert "Failed to send IPC command" in str(exc.value)
