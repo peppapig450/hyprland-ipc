@@ -50,6 +50,7 @@ build-backend = "hatchling.build"
 dev = [
     "mypy>=1.15.0",
     "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
     "ruff>=0.11.11",
 ]
 
@@ -97,7 +98,7 @@ extend-immutable-calls = []
 
 [tool.ruff.lint.per-file-ignores]
 # Ignore print statements and doctest errors in tests
-"tests/*" = ["T201", "D103"]
+"tests/*" = ["T201", "D103", "D401", "S101"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -130,3 +131,31 @@ exclude = [
     ".*venv/",
     "__pycache__/",
 ]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+
+# Default cli flags: show extra summary info, quiet dots output, short tracebacks
+addopts="-ra -q --tb=short --strict-markers"
+
+testpaths = ["test"]
+
+# Naming conventions
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+markers = [
+  "unit:      mark a test as a unit test",
+  "integration: mark a test as an integration test",
+  "slow:      mark a test as slow",
+]
+
+# Treat all DeprecationWarnings as errors, ignore import warnings
+filterwarnings = [
+  "error::DeprecationWarning",
+  "ignore::pytest.PytestWarning",
+]
+
+log_cli = true
+log_cli_level = "INFO"
