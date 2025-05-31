@@ -205,14 +205,16 @@ def test_batch_fallback(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> No
 # ---------------------------------------------------------------------------#
 
 
-def test_get_wrappers(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_wrapper_methods(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
     monkeypatch.setattr(
-        HyprlandIPC, "send_json", lambda self, c: [1, 2] if c == "clients" else {"k": "v"}
+        HyprlandIPC,
+        "send_json",
+        lambda _self, c: [{"id": 1}, {"id": 2}] if c == "clients" else {"k": "v"},
     )
-    ipc_obj: HyprlandIPC = HyprlandIPC(Path("a"), Path("b"))
-    assert [client["id"] for client in ipc_obj.get_clients()] == [1, 2]
-    assert ipc_obj.get_active_window() == {"k": "v"}
-    assert ipc_obj.get_active_workspace() == {"k": "v"}
+
+    assert [c["id"] for c in ipc.get_clients()] == [1, 2]
+    assert ipc.get_active_window() == {"k": "v"}
+    assert ipc.get_active_workspace() == {"k": "v"}
 
 
 # ---------------------------------------------------------------------------#
