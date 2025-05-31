@@ -152,11 +152,32 @@ def test_send_json_unexpected(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC)
 #                                dispatch()                                  #
 # ---------------------------------------------------------------------------#
 
+
+def test_dispatch_composes_command(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
+    sent: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "send", lambda _self, c: sent.append(c))
+    ipc.dispatch("togglefloating")
+    assert sent == ["dispatch togglefloating"]
+
+
+def test_dispatch_error(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
+    monkeypatch.setattr(HyprlandIPC, "send", lambda *_: (_ for _ in ()).throw(HyprlandIPCError()))
+    with pytest.raises(HyprlandIPCError):
+        ipc.dispatch("do")
+
+
 # ---------------------------------------------------------------------------#
 #                              dispatch_many()                               #
 # ---------------------------------------------------------------------------#
 
+
+def test_dispatch_many_calls_each(monkeypatch: pytest.MonkeyPatch, ipc: HyprlandIPC) -> None:
     called: list[str] = []
+    monkeypatch.setattr(HyprlandIPC, "dispatch", lambda _self, c: called.append(c))
+    ipc.dispatch_many(["a", "b"])
+    assert called == ["a", "b"]
+
+
 # ---------------------------------------------------------------------------#
 #                                 batch()                                    #
 # ---------------------------------------------------------------------------#
