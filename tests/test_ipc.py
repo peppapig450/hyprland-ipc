@@ -86,6 +86,32 @@ def test_from_env_socket_paths(monkeypatch: pytest.MonkeyPatch) -> None:
 #                                   send()                                   #
 # ---------------------------------------------------------------------------#
 
+
+@pytest.mark.parametrize(
+    ("socket_fixture", "expected", "exc"),
+    [
+        ("fake_socket_success", "resp", None),
+        ("fake_socket_unknown", None, HyprlandIPCError),
+        ("bad_socket", None, HyprlandIPCError),
+    ],
+)
+def test_send(
+    socket_fixture: str,
+    expected: str | None,
+    exc: None | type[BaseException],
+    request: pytest.FixtureRequest,
+    ipc: HyprlandIPC,
+) -> None:
+    # activate the correct fake socket for this parameterised case
+    request.getfixturevalue(socket_fixture)
+
+    if exc is not None:
+        with pytest.raises(exc):
+            ipc.send("cmd")
+    else:
+        assert ipc.send("cmd") == expected
+
+
 # ---------------------------------------------------------------------------#
 #                               send_json()                                  #
 # ---------------------------------------------------------------------------#
