@@ -152,7 +152,7 @@ class HyprlandIPC:
         except Exception as e:
             raise HyprlandIPCError(
                 f"Failed to send or parse JSON for command '{command}': {e} "
-            )
+            ) from e
 
     def dispatch(self, command: str) -> None:
         """Send a single dispatch command.
