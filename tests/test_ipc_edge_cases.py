@@ -253,7 +253,7 @@ def test_events_recv_raises_unexpected(tmp_path: Path, monkeypatch: pytest.Monke
 
     class DummySelector:
         def __init__(self) -> None:
-            self._sock = None
+            self._sock: socket.socket | None = None
 
         def register(self, sock: socket.socket, event):
             # store reference for select()
