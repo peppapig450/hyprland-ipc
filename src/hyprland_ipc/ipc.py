@@ -268,7 +268,8 @@ class HyprlandIPC:
                                     try:
                                         ev, _, data = line.partition(b">>")
                                         yield Event(ev.decode(), data.decode())
-                                    except Exception:
+                                    except UnicodeDecodeError:
+                                        # XXX: this should be logged once logging is setup
                                         continue
                         except BlockingIOError:
                             continue
