@@ -188,7 +188,8 @@ class HyprlandIPC:
     def batch(self, commands: Sequence[str]) -> None:
         """Send multiple dispatch commands as a single string, separated by ';'.
 
-        Not all Hyprland versions support batch over IPC; falls back to dispatch_many if batch fails.
+        Not all Hyprland versions support batch over IPC; if batch fails,
+        falls back to dispatch_many().
 
         Args:
             commands: Iterable of dispatch commands.
