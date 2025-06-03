@@ -21,11 +21,67 @@ import socket
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, TypeGuard, cast, overload
 
 
 type AnyDict = dict[str, Any]
 """Type alias for generic dictionaries representing Hyprland's JSON responses."""
+
+
+def is_dict(obj: object) -> TypeGuard[AnyDict]:
+    """Check if the given object is a dictionary with string keys and any values.
+
+    Args:
+        obj (object): The object to check.
+
+    Returns:
+        TypeGuard[AnyDict]: True if the object is a dictionary; otherwise, False.
+    """
+    return isinstance(obj, dict)
+
+
+def is_list_of_dicts(obj: object) -> TypeGuard[list[AnyDict]]:
+    """Check if the given object is a list of dictionaries with string keys and any values.
+
+    Args:
+        obj (object): The object to check.
+
+    Returns:
+        TypeGuard[list[AnyDict]]: True if the object is a list of dictionaries; otherwise, False.
+    """
+    return isinstance(obj, list) and all(is_dict(i) for i in obj)
+
+
+@overload
+def normalize(data: object, kind: Literal["list"]) -> list[AnyDict]: ...
+@overload
+def normalize(data: object, kind: Literal["dict"]) -> AnyDict: ...
+def normalize(data: object, kind: Literal["list", "dict"]) -> AnyDict | list[AnyDict]:
+    """Normalize data to a list of dicts or a single dict.
+
+    If kind is "list", always return a list of dicts:
+      - If data is already a list of dicts, return it.
+      - If data is a dict, wrap it in a single-element list.
+      - Otherwise, return an empty list.
+
+    If kind is "dict", always return a dict:
+      - If data is a dict, return it.
+      - If data is a non-empty list of dicts, return its first element.
+      - Otherwise, return an empty dict.
+    """
+    if kind == "list":
+        if is_list_of_dicts(data):
+            return data
+        if is_dict(data):
+            return [data]
+        return []  # XXX: once logging is setup log here
+
+    if kind == "dict":
+        if is_dict(data):
+            return data
+        if is_list_of_dicts(data) and data:
+            return data[0]
+        return {}
 
 
 @dataclass
@@ -131,7 +187,7 @@ class HyprlandIPC:
         except Exception as e:
             raise HyprlandIPCError(f"Failed to send IPC command '{command}': {e}") from e
 
-    def send_json(self, command: str) -> AnyDict | Sequence[AnyDict]:
+    def send_json(self, command: str) -> Any:
         """Send a command with 'j/' prefix and parse the JSON response.
 
         Args:
@@ -213,7 +269,7 @@ class HyprlandIPC:
         Returns:
             list[AnyDict]: List of client window info dicts.
         """
-        return self.send_json("clients")
+        return normalize(self.send_json("clients"), "list")
 
     def get_active_window(self) -> AnyDict:
         """Get the active window name and its properties as a JSON object.
@@ -221,7 +277,7 @@ class HyprlandIPC:
         Returns:
             AnyDict: Active window info.
         """
-        return self.send_json("activewindow")
+        return normalize(self.send_json("activewindow"), "dict")
 
     def get_active_workspace(self) -> AnyDict:
         """Get the active workspace and its properties as a JSON object.
@@ -229,7 +285,7 @@ class HyprlandIPC:
         Returns:
             AnyDict: Active workspace info.
         """
-        return self.send_json("activeworkspace")
+        return normalize(self.send_json("activeworkspace"), "dict")
 
     def events(self) -> Iterator[Event]:
         """Listen to .socket2.sock for Hyprland events.
