@@ -23,11 +23,14 @@ from typing import Any, cast
 type AnyDict = dict[str, Any]
 """Type alias for generic dictionaries representing Hyprland's JSON responses."""
 
+
 @dataclass
 class Event:
     """A Hyprland event, with a name and associated data string."""
+
     name: str
     data: str
+
 
 class HyprlandIPCError(Exception):
     """Raised when HyprlandIPC fails to communicate or parse responses."""
@@ -76,9 +79,7 @@ class HyprlandIPC:
                 missing.append("XDG_RUNTIME_DIR")
             if not hypr_instance_sig:
                 missing.append("HYPRLAND_INSTANCE_SIGNATURE")
-            raise HyprlandIPCError(
-                f"Must run under Hyprland (missing: {', '.join(missing)})"
-            )
+            raise HyprlandIPCError(f"Must run under Hyprland (missing: {', '.join(missing)})")
 
         base = Path(xdg_runtime).resolve() / "hypr" / hypr_instance_sig
         sock1 = base / ".socket.sock"
@@ -124,9 +125,7 @@ class HyprlandIPC:
             return decoded
 
         except Exception as e:
-            raise HyprlandIPCError(
-                f"Failed to send IPC command '{command}': {e}"
-            ) from e
+            raise HyprlandIPCError(f"Failed to send IPC command '{command}': {e}") from e
 
     def send_json(self, command: str) -> AnyDict | Sequence[AnyDict]:
         """Send a command with 'j/' prefix and parse the JSON response.
@@ -144,9 +143,7 @@ class HyprlandIPC:
             resp = self.send(f"j/{command}")
             return json.loads(resp) if resp else {}
         except json.JSONDecodeError as e:
-            raise HyprlandIPCError(
-                f"Invalid JSON response for command '{command}': {e}"
-            ) from e
+            raise HyprlandIPCError(f"Invalid JSON response for command '{command}': {e}") from e
         except HyprlandIPCError:
             raise  # Re-raise IPC errors cleanly
         except Exception as e:
@@ -181,9 +178,7 @@ class HyprlandIPC:
             try:
                 self.dispatch(cmd)
             except HyprlandIPCError as e:
-                raise HyprlandIPCError(
-                    f"Failed to dispatch command '{cmd}': {e}"
-                ) from e
+                raise HyprlandIPCError(f"Failed to dispatch command '{cmd}': {e}") from e
 
     def batch(self, commands: Sequence[str]) -> None:
         """Send multiple dispatch commands as a single string, separated by ';'.
@@ -254,12 +249,12 @@ class HyprlandIPC:
                 buf = bytearray()
 
                 while True:
-                    for key, _ in sel.select(timeout=0.01): # 10ms timeout
+                    for key, _ in sel.select(timeout=0.01):  # 10ms timeout
                         conn = cast(socket.socket, key.fileobj)
                         try:
                             chunk = conn.recv(4096)
                             if not chunk:
-                                return # Disconnected
+                                return  # Disconnected
                             buf.extend(chunk)
                             while b"\n" in buf:
                                 line, _, rest = buf.partition(b"\n")
