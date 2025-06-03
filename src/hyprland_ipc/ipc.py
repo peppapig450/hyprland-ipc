@@ -128,7 +128,7 @@ class HyprlandIPC:
                 f"Failed to send IPC command '{command}': {e}"
             ) from e
 
-    def send_json(self, command: str) -> Any:
+    def send_json(self, command: str) -> AnyDict | Sequence[AnyDict]:
         """Send a command with 'j/' prefix and parse the JSON response.
 
         Args:
