@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 peppapig450
+#
+# SPDX-License-Identifier: MIT
+
 [project]
 name = "hyprland-ipc"
 version = "0.1.0"
@@ -49,6 +53,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "mypy>=1.15.0",
+    "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "ruff>=0.11.11",
