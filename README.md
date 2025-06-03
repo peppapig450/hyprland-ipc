@@ -17,7 +17,8 @@ SPDX-License-Identifier: MIT
 
 - [hyprland-ipc](#hyprland-ipc)
   - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
+- [Installation](#installation)
+  - [Usage](#usage)
   - [License](#license)
 
 ## Installation
@@ -27,6 +28,21 @@ pip install hyprland-ipc
 ```
 
 This package requires Python 3.12 or newer.
+
+## Usage
+
+```python
+from hyprland_ipc import HyprlandIPC
+
+# Discover socket paths from the environment
+ipc = HyprlandIPC.from_env()
+
+# Print two events then exit
+for i, event in enumerate(ipc.events()):
+    print(event)
+    if i == 1:
+        break
+```
 
 ## License
 
