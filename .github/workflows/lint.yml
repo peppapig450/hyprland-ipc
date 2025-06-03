@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2025 peppapig450
+#
+# SPDX-License-Identifier: MIT
+name: Lint and Type Check
+on:
+    push:
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+  lint-and-type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+            enable-cache: true
+            cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: |
+            uv sync --locked --all-extras --dev
+        env:
+            UV_SYSTEM_PYTHON: 1
+
+      - name: Run ruff check (lint)
+        run: uv run ruff check .
+
+      - name: Run ruff format (check only)
+        run: uv run ruff format --check .
+
+      - name: Run mypy
+        run: uv run mypy .
+
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files
+
+      - name: Run REUSE lint
+        run: uv run reuse lint
