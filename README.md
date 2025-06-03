@@ -26,6 +26,8 @@ SPDX-License-Identifier: MIT
 pip install hyprland-ipc
 ```
 
+This package requires Python 3.12 or newer.
+
 ## License
 
 `hyprland-ipc` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
