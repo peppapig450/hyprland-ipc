@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 peppapig450
+
+SPDX-License-Identifier: MIT
+-->
+
 # hyprland-ipc
 
 [![Test and Coverage](https://github.com/peppapig450/hyprland-ipc/actions/workflows/test-coverage.yml/badge.svg)](https://github.com/peppapig450/hyprland-ipc/actions/workflows/test-coverage.yml)

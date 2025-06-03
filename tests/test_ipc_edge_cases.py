@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 peppapig450
+#
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 import selectors

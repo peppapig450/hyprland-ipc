@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 peppapig450
+#
+# SPDX-License-Identifier: MIT
+
 """HyprlandIPC: A reusable, type-safe Python IPC client for Hyprland's UNIX sockets.
 
 - Send hyprctl-like commands and receive replies (raw or JSON).
