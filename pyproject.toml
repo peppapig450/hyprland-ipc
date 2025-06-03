@@ -5,7 +5,7 @@
 [project]
 name = "hyprland-ipc"
 version = "0.1.0"
-description = "A modern, type-safe IPC client for Hyprland'x UNIX sockets."
+description = "A modern, type-safe IPC client for Hyprland's UNIX sockets."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
