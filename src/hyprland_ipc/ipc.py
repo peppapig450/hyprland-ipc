@@ -52,9 +52,9 @@ def is_list_of_dicts(obj: object) -> TypeGuard[list[AnyDict]]:
     return isinstance(obj, list) and all(is_dict(i) for i in obj)
 
 
-@overload
+@overload  # pragma: no cover - hint stub for typing only
 def normalize(data: object, kind: Literal["list"]) -> list[AnyDict]: ...
-@overload
+@overload  # pragma: no cover - hint stub for typing only
 def normalize(data: object, kind: Literal["dict"]) -> AnyDict: ...
 def normalize(data: object, kind: Literal["list", "dict"]) -> AnyDict | list[AnyDict]:
     """Normalize data to a list of dicts or a single dict.
