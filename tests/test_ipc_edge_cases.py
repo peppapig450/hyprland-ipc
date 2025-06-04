@@ -8,6 +8,7 @@ import selectors
 import socket
 import threading
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -407,7 +408,7 @@ def test_events_blocking_io_retry(monkeypatch: pytest.MonkeyPatch) -> None:
     """events() should continue after BlockingIOError and still yield events."""
 
     class BlockingSocket:
-        def __init__(self, _family, _type):
+        def __init__(self, _family: None, _type: None):
             self.calls = 0
 
         def __enter__(self):
@@ -433,10 +434,10 @@ def test_events_blocking_io_retry(monkeypatch: pytest.MonkeyPatch) -> None:
                 return b"evt>>data\n"
             return b""
 
-        def fileno(self):
+        def fileno(self) -> Literal[1]:
             return 1
 
-        def close(self):
+        def close(self) -> None:
             return None
 
     class DummyKey:
@@ -453,7 +454,6 @@ def test_events_blocking_io_retry(monkeypatch: pytest.MonkeyPatch) -> None:
         def select(self, timeout=None):
             if self._sock:
                 return [(DummyKey(self._sock), None)]
-            return []
 
     monkeypatch.setattr(socket, "socket", BlockingSocket)
     monkeypatch.setattr(selectors, "DefaultSelector", DummySelector)
@@ -461,3 +461,7 @@ def test_events_blocking_io_retry(monkeypatch: pytest.MonkeyPatch) -> None:
     ipc = HyprlandIPC(Path("cmd"), Path("evt"))
     events = list(ipc.events())
     assert events == [Event("evt", "data")]
+
+    sock = BlockingSocket(None, None)
+    assert sock.fileno() == 1
+    assert sock.close() is None  # type: ignore[func-returns-value]
