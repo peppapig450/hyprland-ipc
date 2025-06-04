@@ -1,13 +1,18 @@
+# SPDX-FileCopyrightText: 2025-present peppapig450 <peppapig450@pm.me>
+#
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 import selectors
 import socket
 import threading
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
-from hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError
+from hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError, normalize
 from tests.conftest import _make_short_socket
 
 
@@ -253,7 +258,7 @@ def test_events_recv_raises_unexpected(tmp_path: Path, monkeypatch: pytest.Monke
 
     class DummySelector:
         def __init__(self) -> None:
-            self._sock = None
+            self._sock: socket.socket | None = None
 
         def register(self, sock: socket.socket, event):
             # store reference for select()
@@ -363,3 +368,100 @@ def test_from_env_non_socket_files(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     with pytest.raises(HyprlandIPCError) as exc:
         HyprlandIPC.from_env()
     assert "Expected Hyprland socket files not found." in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# Additional edge cases to boost coverage
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_list_of_dicts_first_item() -> None:
+    """normalize() should return first element when kind="dict" and data is list."""
+    data = [{"a": 1}, {"b": 2}]
+    assert normalize(data, "dict") == {"a": 1}
+
+
+def test_send_json_reraises_hypr_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """send_json() must propagate HyprlandIPCError from send()."""
+
+    def raise_err(*_args, **_kwargs):
+        raise HyprlandIPCError("boom")
+
+    monkeypatch.setattr(HyprlandIPC, "send", raise_err)
+    ipc = HyprlandIPC(Path("cmd"), Path("evt"))
+    with pytest.raises(HyprlandIPCError):
+        ipc.send_json("whatever")
+
+
+def test_events_skip_blank_line_then_yield(tmp_path: Path) -> None:
+    """Blank lines should be ignored before yielding valid events."""
+    evt_path = _make_short_socket("evt_blank")
+    thread = _start_custom_event_server(evt_path, [b"\n", b"evt>>ok\n"])
+    ipc = HyprlandIPC(Path("cmd"), evt_path)
+    events = list(ipc.events())
+    thread.join()
+    evt_path.unlink(missing_ok=True)
+    assert events == [Event("evt", "ok")]
+
+
+def test_events_blocking_io_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """events() should continue after BlockingIOError and still yield events."""
+
+    class BlockingSocket:
+        def __init__(self, _family: None, _type: None):
+            self.calls = 0
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def connect(self, _path):
+            return None
+
+        def setblocking(self, _flag):
+            return None
+
+        def recv(self, _bufsize):
+            first_event_call = 1
+            second_event_call = 2
+
+            self.calls += 1
+            if self.calls == first_event_call:
+                raise BlockingIOError
+            if self.calls == second_event_call:
+                return b"evt>>data\n"
+            return b""
+
+        def fileno(self) -> Literal[1]:
+            return 1
+
+        def close(self) -> None:
+            return None
+
+    class DummyKey:
+        def __init__(self, sock: socket.socket) -> None:
+            self.fileobj = sock
+
+    class DummySelector:
+        def __init__(self) -> None:
+            self._sock: socket.socket | None = None
+
+        def register(self, sock: socket.socket, event):
+            self._sock = sock
+
+        def select(self, timeout=None):
+            if self._sock:
+                return [(DummyKey(self._sock), None)]
+
+    monkeypatch.setattr(socket, "socket", BlockingSocket)
+    monkeypatch.setattr(selectors, "DefaultSelector", DummySelector)
+
+    ipc = HyprlandIPC(Path("cmd"), Path("evt"))
+    events = list(ipc.events())
+    assert events == [Event("evt", "data")]
+
+    sock = BlockingSocket(None, None)
+    assert sock.fileno() == 1
+    assert sock.close() is None  # type: ignore[func-returns-value]

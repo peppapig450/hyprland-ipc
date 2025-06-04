@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2025-present peppapig450 <peppapig450@pm.me>
+#
+# SPDX-License-Identifier: MIT
+
+version: 2
+updates:
+  # Monitor GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"  # Location of .github/workflows
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Monitor Python dependencies (adjust the directory as needed)
+  - package-ecosystem: "uv"
+    directory: "/"  # Change if your requirements.txt or pyproject.toml is not in root
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

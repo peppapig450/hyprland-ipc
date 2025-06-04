@@ -1,15 +1,14 @@
 # SPDX-FileCopyrightText: 2025-present peppapig450 <peppapig450@pm.me>
 #
 # SPDX-License-Identifier: MIT
-
-name: Test and Coverage
+name: Lint and Type Check
 on:
     push:
     pull_request:
     workflow_dispatch:
 
 jobs:
-  test:
+  lint-and-type-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,11 +30,14 @@ jobs:
         env:
             UV_SYSTEM_PYTHON: 1
 
-      - name: Run tests with coverage
-        run: |
-          uv run pytest --cov=src tests/ --cov-report=xml
+      - name: Run ruff check (lint)
+        run: uv run ruff check .
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-            token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Run ruff format (check only)
+        run: uv run ruff format --check .
+
+      - name: Run mypy
+        run: uv run mypy .
+
+      - name: Run REUSE lint
+        run: uv run reuse lint

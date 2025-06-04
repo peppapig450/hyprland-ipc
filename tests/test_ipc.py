@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-present peppapig450 <peppapig450@pm.me>
+#
+# SPDX-License-Identifier: MIT
+
 import socket
 import tempfile
 import uuid
@@ -5,7 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from src.hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError
+
+from hyprland_ipc.ipc import Event, HyprlandIPC, HyprlandIPCError, normalize
 
 
 # ---------------------------------------------------------------------------#
@@ -227,3 +232,24 @@ def test_events_iteration(cmd_server, evt_server) -> None:
     ipc_obj = HyprlandIPC(cmd_server, evt_server)
     events = list(ipc_obj.events())
     assert events == [Event("evt1", "data1"), Event("evt2", "data2")]
+
+
+# ---------------------------------------------------------------------------#
+#                                 normalize()                                #
+# ---------------------------------------------------------------------------#
+
+
+def test_normalize_returns_same_list() -> None:
+    data = [{"a": 1}, {"b": 2}]
+    assert normalize(data, "list") is data
+
+
+def test_normalize_wraps_dict_as_list() -> None:
+    data = {"k": "v"}
+    assert normalize(data, "list") == [data]
+
+
+@pytest.mark.parametrize("value", [None, "str", 1, [1, 2], 3.14])
+def test_normalize_invalid_inputs(value: object) -> None:
+    assert normalize(value, "list") == []
+    assert normalize(value, "dict") == {}

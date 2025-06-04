@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-present peppapig450 <peppapig450@pm.me>
+#
+# SPDX-License-Identifier: MIT
+
 """HyprlandIPC: A reusable, type-safe Python IPC client for Hyprland's UNIX sockets.
 
 - Send hyprctl-like commands and receive replies (raw or JSON).
@@ -17,17 +21,76 @@ import socket
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, TypeGuard, cast, overload
 
 
 type AnyDict = dict[str, Any]
 """Type alias for generic dictionaries representing Hyprland's JSON responses."""
 
+
+def is_dict(obj: object) -> TypeGuard[AnyDict]:
+    """Check if the given object is a dictionary with string keys and any values.
+
+    Args:
+        obj (object): The object to check.
+
+    Returns:
+        TypeGuard[AnyDict]: True if the object is a dictionary; otherwise, False.
+    """
+    return isinstance(obj, dict)
+
+
+def is_list_of_dicts(obj: object) -> TypeGuard[list[AnyDict]]:
+    """Check if the given object is a list of dictionaries with string keys and any values.
+
+    Args:
+        obj (object): The object to check.
+
+    Returns:
+        TypeGuard[list[AnyDict]]: True if the object is a list of dictionaries; otherwise, False.
+    """
+    return isinstance(obj, list) and all(is_dict(i) for i in obj)
+
+
+@overload  # pragma: no cover - hint stub for typing only
+def normalize(data: object, kind: Literal["list"]) -> list[AnyDict]: ...
+@overload  # pragma: no cover - hint stub for typing only
+def normalize(data: object, kind: Literal["dict"]) -> AnyDict: ...
+def normalize(data: object, kind: Literal["list", "dict"]) -> AnyDict | list[AnyDict]:
+    """Normalize data to a list of dicts or a single dict.
+
+    If kind is "list", always return a list of dicts:
+      - If data is already a list of dicts, return it.
+      - If data is a dict, wrap it in a single-element list.
+      - Otherwise, return an empty list.
+
+    If kind is "dict", always return a dict:
+      - If data is a dict, return it.
+      - If data is a non-empty list of dicts, return its first element.
+      - Otherwise, return an empty dict.
+    """
+    if kind == "list":
+        if is_list_of_dicts(data):
+            return data
+        if is_dict(data):
+            return [data]
+        return []  # XXX: once logging is setup log here
+
+    if kind == "dict":
+        if is_dict(data):
+            return data
+        if is_list_of_dicts(data) and data:
+            return data[0]
+        return {}
+
+
 @dataclass
 class Event:
     """A Hyprland event, with a name and associated data string."""
+
     name: str
     data: str
+
 
 class HyprlandIPCError(Exception):
     """Raised when HyprlandIPC fails to communicate or parse responses."""
@@ -76,9 +139,7 @@ class HyprlandIPC:
                 missing.append("XDG_RUNTIME_DIR")
             if not hypr_instance_sig:
                 missing.append("HYPRLAND_INSTANCE_SIGNATURE")
-            raise HyprlandIPCError(
-                f"Must run under Hyprland (missing: {', '.join(missing)})"
-            )
+            raise HyprlandIPCError(f"Must run under Hyprland (missing: {', '.join(missing)})")
 
         base = Path(xdg_runtime).resolve() / "hypr" / hypr_instance_sig
         sock1 = base / ".socket.sock"
@@ -124,9 +185,7 @@ class HyprlandIPC:
             return decoded
 
         except Exception as e:
-            raise HyprlandIPCError(
-                f"Failed to send IPC command '{command}': {e}"
-            ) from e
+            raise HyprlandIPCError(f"Failed to send IPC command '{command}': {e}") from e
 
     def send_json(self, command: str) -> Any:
         """Send a command with 'j/' prefix and parse the JSON response.
@@ -144,15 +203,13 @@ class HyprlandIPC:
             resp = self.send(f"j/{command}")
             return json.loads(resp) if resp else {}
         except json.JSONDecodeError as e:
-            raise HyprlandIPCError(
-                f"Invalid JSON response for command '{command}': {e}"
-            ) from e
+            raise HyprlandIPCError(f"Invalid JSON response for command '{command}': {e}") from e
         except HyprlandIPCError:
             raise  # Re-raise IPC errors cleanly
         except Exception as e:
             raise HyprlandIPCError(
                 f"Failed to send or parse JSON for command '{command}': {e} "
-            )
+            ) from e
 
     def dispatch(self, command: str) -> None:
         """Send a single dispatch command.
@@ -181,14 +238,13 @@ class HyprlandIPC:
             try:
                 self.dispatch(cmd)
             except HyprlandIPCError as e:
-                raise HyprlandIPCError(
-                    f"Failed to dispatch command '{cmd}': {e}"
-                ) from e
+                raise HyprlandIPCError(f"Failed to dispatch command '{cmd}': {e}") from e
 
     def batch(self, commands: Sequence[str]) -> None:
         """Send multiple dispatch commands as a single string, separated by ';'.
 
-        Not all Hyprland versions support batch over IPC; falls back to dispatch_many if batch fails.
+        Not all Hyprland versions support batch over IPC; if batch fails,
+        falls back to dispatch_many().
 
         Args:
             commands: Iterable of dispatch commands.
@@ -213,7 +269,7 @@ class HyprlandIPC:
         Returns:
             list[AnyDict]: List of client window info dicts.
         """
-        return self.send_json("clients")
+        return normalize(self.send_json("clients"), "list")
 
     def get_active_window(self) -> AnyDict:
         """Get the active window name and its properties as a JSON object.
@@ -221,7 +277,7 @@ class HyprlandIPC:
         Returns:
             AnyDict: Active window info.
         """
-        return self.send_json("activewindow")
+        return normalize(self.send_json("activewindow"), "dict")
 
     def get_active_workspace(self) -> AnyDict:
         """Get the active workspace and its properties as a JSON object.
@@ -229,7 +285,7 @@ class HyprlandIPC:
         Returns:
             AnyDict: Active workspace info.
         """
-        return self.send_json("activeworkspace")
+        return normalize(self.send_json("activeworkspace"), "dict")
 
     def events(self) -> Iterator[Event]:
         """Listen to .socket2.sock for Hyprland events.
@@ -253,12 +309,12 @@ class HyprlandIPC:
                 buf = bytearray()
 
                 while True:
-                    for key, _ in sel.select(timeout=0.01): # 10ms timeout
+                    for key, _ in sel.select(timeout=0.01):  # 10ms timeout
                         conn = cast(socket.socket, key.fileobj)
                         try:
                             chunk = conn.recv(4096)
                             if not chunk:
-                                return # Disconnected
+                                return  # Disconnected
                             buf.extend(chunk)
                             while b"\n" in buf:
                                 line, _, rest = buf.partition(b"\n")
@@ -267,7 +323,8 @@ class HyprlandIPC:
                                     try:
                                         ev, _, data = line.partition(b">>")
                                         yield Event(ev.decode(), data.decode())
-                                    except Exception:
+                                    except UnicodeDecodeError:
+                                        # XXX: this should be logged once logging is setup
                                         continue
                         except BlockingIOError:
                             continue

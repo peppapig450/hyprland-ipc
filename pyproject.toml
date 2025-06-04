@@ -1,7 +1,11 @@
+# SPDX-FileCopyrightText: 2025-present peppapig450 <peppapig450@pm.me>
+#
+# SPDX-License-Identifier: MIT
+
 [project]
 name = "hyprland-ipc"
 version = "0.1.0"
-description = "A modern, type-safe IPC client for Hyprland'x UNIX sockets."
+description = "A modern, type-safe IPC client for Hyprland's UNIX sockets."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
@@ -49,8 +53,10 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "mypy>=1.15.0",
+    "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
+    "reuse>=5.0.2",
     "ruff>=0.11.11",
 ]
 

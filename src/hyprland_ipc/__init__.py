@@ -5,4 +5,4 @@ from .__about__ import __version__
 from .ipc import Event, HyprlandIPC, HyprlandIPCError
 
 
-__all__ = ["Event", "HyprlandIPC", "HyprlandIPCError"]
+__all__ = ["Event", "HyprlandIPC", "HyprlandIPCError", "__version__"]
