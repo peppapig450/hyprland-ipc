@@ -28,6 +28,7 @@ classifiers = [
   "Topic :: Desktop Environment",
   "Topic :: Desktop Environment :: Window Managers",
   "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed"
 ]
 dependencies = []
 
