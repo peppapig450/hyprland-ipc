@@ -6,24 +6,35 @@
 name = "hyprland-ipc"
 version = "0.1.0"
 description = "A modern, type-safe IPC client for Hyprland's UNIX sockets."
-readme = "README.md"
+readme.file = "README.md"
+readme.content-type = "text/markdown"
 requires-python = ">=3.12"
 license = "MIT"
-keywords = []
+license-files = ["LICENSE.txt", "LICENSES/*.txt"]
+keywords = ["hyprland", "ipc", "wayland", "socket"]
 authors = [
   { name = "peppapig450", email = "peppapig450@pm.me" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Desktop Environment",
+  "Topic :: Desktop Environment :: Window Managers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed"
 ]
 dependencies = []
 
 [project.urls]
 Documentation = "https://github.com/peppapig450/hyprland-ipc#readme"
+Homepage = "https://github.com/peppapig450/hyprland-ipc"
 Issues = "https://github.com/peppapig450/hyprland-ipc/issues"
 Source = "https://github.com/peppapig450/hyprland-ipc"
 
@@ -58,6 +69,9 @@ dev = [
     "pytest-cov>=6.1.1",
     "reuse>=5.0.2",
     "ruff>=0.11.11",
+]
+release = [
+    "twine>=6.1.0",
 ]
 
 [tool.ruff]
@@ -165,3 +179,13 @@ filterwarnings = [
 
 log_cli = true
 log_cli_level = "INFO"
+
+[tool.hatch.build]
+exclude = [
+  "/.github",
+  "/.gitignore",
+  "/.pre-commit-config.yaml",
+  "/mypy.ini",
+  "/uv.lock",
+  "/uv.lock.license",
+]
