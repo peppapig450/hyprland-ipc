@@ -4,7 +4,7 @@
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.1
+    rev: v0.17.3
     hooks:
       # Run the linter
       - id: ruff-check
@@ -12,7 +12,7 @@ repos:
       # Run the formatter
       - id: ruff-format
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v6.2.0
+    rev: v6.3.0
     hooks:
       - id: reuse-lint-file
   - repo: https://github.com/pre-commit/pre-commit-hooks
